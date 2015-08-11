@@ -51,21 +51,15 @@ if __name__ == '__main__':
         contours = [cv2.approxPolyDP(cnt, 3, True) for cnt in contours0]
 
         selected = []
-
         vis3 = np.zeros((h, w), np.uint8)
         #**[Next, Previous, First_Child, Parent]**
         for c, h in zip(contours, hierarchy[0]):
             if h[0] == -1 and h[1] == -1:
                 selected.append(c)
 
-        cv2.drawContours(vis3,selected,-1,255,1,cv2.LINE_AA)
+        cv2.drawContours(vis, selected, -1, (255, 0, 0), 2, cv2.LINE_AA)
 
-
-
-        cv2.imshow('contours', vis3)
-
-
-
+        cv2.imshow('contours', vis)
 
         ch = cv2.waitKey(5) & 0xFF
         if ch == 27:
