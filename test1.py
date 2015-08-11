@@ -50,10 +50,20 @@ if __name__ == '__main__':
         _, contours0, hierarchy = cv2.findContours(vis2.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         contours = [cv2.approxPolyDP(cnt, 3, True) for cnt in contours0]
 
+        selected = []
+
+        vis3 = np.zeros((h, w), np.uint8)
+        #**[Next, Previous, First_Child, Parent]**
+        for c, h in zip(contours, hierarchy[0]):
+            if h[0] == -1 and h[1] == -1:
+                selected.append(c)
+
+        cv2.drawContours(vis3,selected,-1,255,1,cv2.LINE_AA)
 
 
-        cv2.drawContours(vis2, contours, 1, (128, 255, 255), 1, cv2.LINE_AA, hierarchy, 4)
-        cv2.imshow('contours', vis2)
+
+        cv2.imshow('contours', vis3)
+
 
 
 
