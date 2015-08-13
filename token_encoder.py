@@ -49,11 +49,14 @@ if __name__ == "__main__":
     im = create_base_image(w, h)
     draw = ImageDraw.Draw(im)
 
-    databits = ''.join(format(ord(x), 'b') for x in data)
+    databits = bin(int(binascii.hexlify(data), 16))
 
     print databits, len(databits)
 
-    for i, char in enumerate(databits):
+    n = int(databits, 2)
+    print binascii.unhexlify('%x' % n)
+
+    for i, char in enumerate(databits[2:]):
         xpos = i % w + 3
         ypos = i / w + 3
         if char == '1':

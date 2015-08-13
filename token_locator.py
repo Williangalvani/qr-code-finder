@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 
 from itertools import tee, izip
-
+import binascii
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
@@ -57,8 +57,28 @@ class QrFinder():
 
         matrix = cv2.getPerspectiveTransform(source_perspective, targetperspective)
         cv2.warpPerspective(source, matrix, (100, 100), self.corrected)
+        bits = []
+        gridsize = 8
+        step = 100/(gridsize+3)
+        for y in range(2, gridsize + 2):
+            for x in range(2, gridsize + 2):
+                #cv2.circle(self.corrected, (step*x, step*y), 1, (255, 0, 0), 2)
+                bits.append(self.corrected[step*y][step*x])
+        avg = sum(bits)/len(bits)
+        #print len(bits), avg
+        text = ""
+        for pixel in bits:
+            text += "1" if pixel < avg else "0"
+        data = [text[i:i+8] for i in range(0, len(text), 8)]
+        result = ""
+        for number in data:
+            n = int('0b'+number, 2)
+            print binascii.unhexlify('%x' % n)
+            print number
         cv2.namedWindow('corrected')
         cv2.imshow('corrected', self.corrected)
+
+
 
     def __init__(self):
 
@@ -109,8 +129,8 @@ class QrFinder():
             for candidate in selected:
                 try:
                     self.try_to_decode(candidate, gray, vis)
-                except:
-                    pass
+                except Exception, e:
+                    print e
 
             cv2.imshow('contours', vis)
 
