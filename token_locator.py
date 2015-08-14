@@ -7,6 +7,7 @@ import numpy as np
 from itertools import tee, izip
 import binascii
 
+
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     a, b = tee(iterable)
@@ -36,6 +37,8 @@ class QrFinder():
             cv2.line(target, tuple(a[0]), tuple(b[0]), (0, 0, 255), 3)
         cv2.line(target, tuple(approx[-1][0]), tuple(approx[0][0]), (0, 0, 255), 3)
 
+
+        ## detect center of mass, and each corner before decoding
         center = sum(approx) / 4
         topleft = None
         topright = None
@@ -52,61 +55,63 @@ class QrFinder():
             elif i[0][0] > center[0][0] and i[0][1] > center[0][1]:
                 bottomright = i
 
-        targetperspective = np.float32([[[0, 0]], [[100, 0]], [[100, 100]], [[0, 100]]])
+        targetperspective = np.float32(
+            [[[0, 0]], [[100, 0]], [[100, 100]], [[0, 100]]])  ### use points to calculate perspective matrix
         source_perspective = np.float32([topleft, topright, bottomright, bottomleft])
 
         matrix = cv2.getPerspectiveTransform(source_perspective, targetperspective)
-        cv2.warpPerspective(source, matrix, (100, 100), self.corrected)
+        cv2.warpPerspective(source, matrix, (100, 100),
+                            self.corrected)  ### transforms the image to make the token planas
+
         bits = []
         gridsize = 8
-        step = 100/(gridsize+3)
+        step = 100 / (gridsize + 3)
         min, max = cv2.minMaxLoc(self.corrected)[:2]
-        avg = (min+max)/2
+        avg = (min + max) / 2
         offset = 4
 
-        topleft = 1 if self.corrected[1*step + offset][1*step+ offset]<avg else 0
-        topright = 1 if self.corrected[1*step + offset][(gridsize+1)*step+ offset]<avg else 0
-        bottomright = 1 if self.corrected[(gridsize+1)*step + offset][(gridsize+1)*step+ offset]<avg else 0
-        bottomleft = 1 if self.corrected[(gridsize+1)*step + offset][1*step+ offset]<avg else 0
-        cv2.circle(self.corrected,( (gridsize+1)*step + offset, 1*step+ offset), 1, (255, 0, 0), 2)
+        topleft = 1 if self.corrected[1 * step + offset][1 * step + offset] < avg else 0
+        topright = 1 if self.corrected[1 * step + offset][(gridsize + 1) * step + offset] < avg else 0
+        bottomright = 1 if self.corrected[(gridsize + 1) * step + offset][(gridsize + 1) * step + offset] < avg else 0
+        bottomleft = 1 if self.corrected[(gridsize + 1) * step + offset][1 * step + offset] < avg else 0
+        cv2.circle(self.corrected, ( (gridsize + 1) * step + offset, 1 * step + offset), 1, (255, 0, 0), 2)
         ### abort if wrong number of markers
         if topleft + topright + bottomright + bottomleft != 3:
-           #print "bad"
-           return None
+            # print "bad"
+            return None
 
         ### only gets here if the number of markers is right
 
         for y in range(2, gridsize + 2):
             for x in range(2, gridsize + 2):
-                bits.append(self.corrected[step*y+2][step*x])
-                cv2.circle(self.corrected, (step*x, step*y), 3, (255, 0, 0), 1)
+                bits.append(self.corrected[step * y + 2][step * x])
+                cv2.circle(self.corrected, (step * x, step * y), 3, (255, 0, 0), 1)
 
         text = ""
         for pixel in bits:
             text += "1" if pixel < avg else "0"
-        data = [text[i:i+8] for i in range(0, len(text), 8)]
-        #print data
+        data = [text[i:i + 8] for i in range(0, len(text), 8)]
+        # print data
         result = ""
         cv2.namedWindow('corrected')
         cv2.imshow('corrected', self.corrected)
 
         for number in data:
-           try:
-               n = int('0b'+number, 2)
-               result+= binascii.unhexlify('%x' % n)
-           except:
-               pass
+            try:
+                n = int('0b' + number, 2)
+                result += binascii.unhexlify('%x' % n)
+            except:
+                pass
         print result
-
 
 
     def __init__(self):
 
         self.cap = None
-        self.corrected = np.zeros((100, 100), np.uint8)
+        self.corrected = np.zeros((100, 100), np.uint8)  # image with corrected perspective
 
         try:
-            self.cap = cv2.VideoCapture(0)
+            self.cap = cv2.VideoCapture(0)  # open first camera?
             # self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280);
             # self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 768);
         except:
@@ -117,7 +122,7 @@ class QrFinder():
         cv2.createTrackbar('thrs2', 'edge', 4000, 5000, nothing)
 
         while True:
-            flag, self.img = self.cap.read()
+            flag, self.img = self.cap.read()  # read a frame
             h, w = self.img.shape[:2]
 
             gray = cv2.cvtColor(self.img, cv2.COLOR_BGR2GRAY)
