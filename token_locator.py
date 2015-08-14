@@ -60,23 +60,43 @@ class QrFinder():
         bits = []
         gridsize = 8
         step = 100/(gridsize+3)
+        min, max = cv2.minMaxLoc(self.corrected)[:2]
+        avg = (min+max)/2
+        offset = 4
+
+        topleft = 1 if self.corrected[1*step + offset][1*step+ offset]<avg else 0
+        topright = 1 if self.corrected[1*step + offset][(gridsize+1)*step+ offset]<avg else 0
+        bottomright = 1 if self.corrected[(gridsize+1)*step + offset][(gridsize+1)*step+ offset]<avg else 0
+        bottomleft = 1 if self.corrected[(gridsize+1)*step + offset][1*step+ offset]<avg else 0
+        cv2.circle(self.corrected,( (gridsize+1)*step + offset, 1*step+ offset), 1, (255, 0, 0), 2)
+        ### abort if wrong number of markers
+        if topleft + topright + bottomright + bottomleft != 3:
+           #print "bad"
+           return None
+
+        ### only gets here if the number of markers is right
+
         for y in range(2, gridsize + 2):
             for x in range(2, gridsize + 2):
-                #cv2.circle(self.corrected, (step*x, step*y), 1, (255, 0, 0), 2)
-                bits.append(self.corrected[step*y][step*x])
-        avg = sum(bits)/len(bits)
-        #print len(bits), avg
+                bits.append(self.corrected[step*y+2][step*x])
+                cv2.circle(self.corrected, (step*x, step*y), 3, (255, 0, 0), 1)
+
         text = ""
         for pixel in bits:
             text += "1" if pixel < avg else "0"
         data = [text[i:i+8] for i in range(0, len(text), 8)]
+        #print data
         result = ""
-        for number in data:
-            n = int('0b'+number, 2)
-            print binascii.unhexlify('%x' % n)
-            print number
         cv2.namedWindow('corrected')
         cv2.imshow('corrected', self.corrected)
+
+        for number in data:
+           try:
+               n = int('0b'+number, 2)
+               result+= binascii.unhexlify('%x' % n)
+           except:
+               pass
+        print result
 
 
 
@@ -87,8 +107,8 @@ class QrFinder():
 
         try:
             self.cap = cv2.VideoCapture(0)
-            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280);
-            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 768);
+            # self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280);
+            # self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 768);
         except:
             print "could not open camera!"
 

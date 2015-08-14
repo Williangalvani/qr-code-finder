@@ -50,7 +50,9 @@ if __name__ == "__main__":
     draw = ImageDraw.Draw(im)
 
     databits = bin(int(binascii.hexlify(data), 16))
-
+    missing_zeros =  8 - ((len(databits)-2) % 8)
+    print missing_zeros
+    databits = databits.replace("b","b"+"0"*missing_zeros)
     print databits, len(databits)
 
     n = int(databits, 2)
