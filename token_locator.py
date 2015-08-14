@@ -6,6 +6,7 @@ import numpy as np
 
 from itertools import tee, izip
 import binascii
+import math
 
 
 def pairwise(iterable):
@@ -80,6 +81,18 @@ class QrFinder():
             # print "bad"
             return None
 
+        ### detects need of rotation
+        angle = 0
+        if not topleft:
+            angle = 180
+        elif not topright:
+            angle = 270
+        elif not bottomleft:
+            angle = 90
+
+        rotation = cv2.getRotationMatrix2D((50, 50), angle, 1.0)
+        self.corrected = cv2.warpAffine(self.corrected, rotation, (100, 100))
+
         ### only gets here if the number of markers is right
 
         for y in range(2, gridsize + 2):
@@ -152,10 +165,10 @@ class QrFinder():
 
             cv2.drawContours(vis, selected, -1, (255, 0, 0), 2, cv2.LINE_AA)
             for candidate in selected:
-                try:
+               try:
                     self.try_to_decode(candidate, gray, vis)
-                except Exception, e:
-                    print e
+               except Exception, e:
+                   print e
 
             cv2.imshow('contours', vis)
 

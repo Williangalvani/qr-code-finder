@@ -50,19 +50,30 @@ if __name__ == "__main__":
     draw = ImageDraw.Draw(im)
 
     databits = bin(int(binascii.hexlify(data), 16))
-    missing_zeros =  8 - ((len(databits)-2) % 8)
-    print missing_zeros
-    databits = databits.replace("b","b"+"0"*missing_zeros)
-    print databits, len(databits)
+    missing_zeros = 8 - ((len(databits)-2) % 8)
+
+    #print missing_zeros
+    databits = databits.replace("b", "b"+"0"*missing_zeros)
 
     n = int(databits, 2)
     print binascii.unhexlify('%x' % n)
+
+    checksum = bin(sum(map(ord, databits)) % 255)
+    missing_zeros = 8 - ((len(checksum)-2) % 8)
+    databits2 = checksum.replace("b", "b"+"0"*missing_zeros)
+
+
+
 
     for i, char in enumerate(databits[2:]):
         xpos = i % w + 3
         ypos = i / w + 3
         if char == '1':
             draw.point([xpos, ypos], fill=0)
+
+    for i in range(w):
+        draw.point([xpos, ypos], fill=0)
+
 
     im = im.resize((512, 512))
     im.save(outputfile, 'PNG')
