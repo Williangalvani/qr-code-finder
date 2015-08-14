@@ -104,10 +104,11 @@ class QrFinder():
         for pixel in bits:
             text += "1" if pixel < avg else "0"
         data = [text[i:i + 8] for i in range(0, len(text), 8)]
-        # print data
+
         result = ""
         cv2.namedWindow('corrected')
         cv2.imshow('corrected', self.corrected)
+        data, checksum = data[:-1], data[-1]
 
         for number in data:
             try:
@@ -115,18 +116,22 @@ class QrFinder():
                 result += binascii.unhexlify('%x' % n)
             except:
                 pass
-        print result
 
+        bitstring = '0b'+''.join(data)
+        while bitstring.endswith("00000000"):
+            bitstring = bitstring[:-8]
+        checksumcalculated = bin(sum(map(ord, bitstring)) % 255)
+        if checksum == checksumcalculated[2:]:
+            print result#, checksum, checksumcalculated
 
     def __init__(self):
-
         self.cap = None
         self.corrected = np.zeros((100, 100), np.uint8)  # image with corrected perspective
 
         try:
             self.cap = cv2.VideoCapture(0)  # open first camera?
-            # self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280);
-            # self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 768);
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280);
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 768);
         except:
             print "could not open camera!"
 

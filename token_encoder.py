@@ -43,12 +43,12 @@ if __name__ == "__main__":
 
     print "image:", (w, h), "data", data, "saving to ", outputfile
 
-
-    data_size_available = w*h - 3
+    data_size_available = w*h - 8
 
     im = create_base_image(w, h)
     draw = ImageDraw.Draw(im)
 
+    data = data[:data_size_available]
     databits = bin(int(binascii.hexlify(data), 16))
     missing_zeros = 8 - ((len(databits)-2) % 8)
 
@@ -59,9 +59,12 @@ if __name__ == "__main__":
     print binascii.unhexlify('%x' % n)
 
     checksum = bin(sum(map(ord, databits)) % 255)
-    missing_zeros = 8 - ((len(checksum)-2) % 8)
-    databits2 = checksum.replace("b", "b"+"0"*missing_zeros)
+    missing_zeros = 10 - len(checksum)
+    print int(checksum, 2), missing_zeros
+    print databits
 
+    checksumbits = checksum.replace("b", "b"+"0"*missing_zeros)
+#    print checksumbits
 
 
 
@@ -71,8 +74,9 @@ if __name__ == "__main__":
         if char == '1':
             draw.point([xpos, ypos], fill=0)
 
-    for i in range(w):
-        draw.point([xpos, ypos], fill=0)
+    for i, char in enumerate(checksumbits[2:]):
+        if char == '1':
+            draw.point([i+3, h+2], fill=0)
 
 
     im = im.resize((512, 512))
