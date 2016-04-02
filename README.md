@@ -1,10 +1,11 @@
 # qr-code-finder
 
-This is a educational experiment where I developed a kind of QR-code system, with both encoding e decoding parts
+This is a educational experiment where I developed a kind of QR-code system, with both encoding e decoding functions.
 
 ##requirements
 
-opencv and cv2 bindings
+opencv with cv2 bindings
+
 numpy
 
 ##Usage
