@@ -4,16 +4,17 @@
 import cv2
 import numpy as np
 
-from itertools import tee, izip
+from itertools import tee
 import binascii
 import math
-
+import traceback
+import sys
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     a, b = tee(iterable)
     next(b, None)
-    return izip(a, b)
+    return zip(a, b)
 
 
 def nothing(kargs=[]):
@@ -66,19 +67,25 @@ class QrFinder():
 
         bits = []
         gridsize = 8
-        step = 100 / (gridsize + 3)
+        step = int(100 / (gridsize + 3))
         min, max = cv2.minMaxLoc(self.corrected)[:2]
         avg = (min + max) / 2
-        offset = 4
+        offset = -4
 
-        topleft = 1 if self.corrected[1 * step + offset][1 * step + offset] < avg else 0
-        topright = 1 if self.corrected[1 * step + offset][(gridsize + 1) * step + offset] < avg else 0
-        bottomright = 1 if self.corrected[(gridsize + 1) * step + offset][(gridsize + 1) * step + offset] < avg else 0
-        bottomleft = 1 if self.corrected[(gridsize + 1) * step + offset][1 * step + offset] < avg else 0
-        cv2.circle(self.corrected, ( (gridsize + 1) * step + offset, 1 * step + offset), 1, (255, 0, 0), 2)
+        left = 1 * step - offset
+        right = (gridsize + 2) * step + offset
+        top = 1 * step - offset
+        bottom = (gridsize + 2) * step + offset
+        topleft = 1 if self.corrected[top][left] < avg else 0
+        topright = 1 if self.corrected[top][right] < avg else 0
+        bottomright = 1 if self.corrected[bottom][right] < avg else 0
+        bottomleft = 1 if self.corrected[bottom][left] < avg else 0
+        #cv2.circle(self.corrected, (right, top), 1, (255, 0, 0), 2)
+        #cv2.circle(self.corrected, (left, top), 1, (255, 0, 0), 2)
+        #cv2.circle(self.corrected, (right, bottom), 1, (255, 0, 0), 2)
+        #cv2.circle(self.corrected, (left, bottom), 1, (255, 0, 0), 2)
         ### abort if wrong number of markers
         if topleft + topright + bottomright + bottomleft != 3:
-            # print "bad"
             return None
 
         ### detects need of rotation
@@ -105,24 +112,17 @@ class QrFinder():
             text += "1" if pixel < avg else "0"
         data = [text[i:i + 8] for i in range(0, len(text), 8)]
 
-        result = ""
         cv2.namedWindow('corrected')
         cv2.imshow('corrected', self.corrected)
         data, checksum = data[:-1], data[-1]
-
-        for number in data:
-            try:
-                n = int('0b' + number, 2)
-                result += binascii.unhexlify('%x' % n)
-            except:
-                pass
+        result = ''.join([chr(int(i, 2)) for i in data])
 
         bitstring = '0b'+''.join(data)
         while bitstring.endswith("00000000"):
             bitstring = bitstring[:-8]
         checksumcalculated = bin(sum(map(ord, bitstring)) % 255)
         if checksum == checksumcalculated[2:]:
-            print result#, checksum, checksumcalculated
+            print(result)
 
     def __init__(self):
         self.cap = None
@@ -133,7 +133,7 @@ class QrFinder():
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280);
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 768);
         except:
-            print "could not open camera!"
+            print("could not open camera!")
 
         cv2.namedWindow('edge')
         cv2.createTrackbar('thrs1', 'edge', 2000, 5000, nothing)
@@ -148,7 +148,6 @@ class QrFinder():
             thrs2 = cv2.getTrackbarPos('thrs2', 'edge')
             edge = cv2.Canny(gray, thrs1, thrs2, apertureSize=5)
             vis = self.img.copy()
-            vis /= 2
             vis[edge != 0] = (0, 255, 0)
             cv2.imshow('edge', vis)
 
@@ -160,20 +159,22 @@ class QrFinder():
 
             selected = []
             # **[Next, Previous, First_Child, Parent]**
-            for c, h in zip(contours, hierarchy[0]):
-                if h[0] == -1 and h[1] == -1:
-                    kid = h[2]
-                    if kid != -1:
-                        kidh = hierarchy[0][kid]
-                        if kidh[0] == -1 and kidh[1] == -1:  ### only checking for nested circles, without brothers
-                            selected.append(c)
+            if hierarchy is not None:
+                for c, h in zip(contours, hierarchy[0]):
+                    if h[0] == -1 and h[1] == -1:
+                        kid = h[2]
+                        if kid != -1:
+                            kidh = hierarchy[0][kid]
+                            if kidh[0] == -1 and kidh[1] == -1:  ### only checking for nested circles, without brothers
+                                selected.append(c)
 
-            cv2.drawContours(vis, selected, -1, (255, 0, 0), 2, cv2.LINE_AA)
-            for candidate in selected:
-               try:
-                    self.try_to_decode(candidate, gray, vis)
-               except Exception, e:
-                   print e
+                cv2.drawContours(vis, selected, -1, (255, 0, 0), 2, cv2.LINE_AA)
+                for candidate in selected:
+                   try:
+                        self.try_to_decode(candidate, gray, vis)
+                   except Exception as e:
+                        print(traceback.format_exc())
+                        print(e)
 
             cv2.imshow('contours', vis)
 

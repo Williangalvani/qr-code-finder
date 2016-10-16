@@ -1,7 +1,6 @@
 __author__ = 'will'
 from PIL import Image, ImageDraw
 import binascii
-
 import sys
 
 
@@ -26,7 +25,7 @@ def create_base_image(w, h):
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        print """usage: token_encoder.py [data] [width, height] [output file]"""
+        print("""usage: token_encoder.py [data] [width, height] [output file]""")
         exit(0)
 
     data = None
@@ -41,7 +40,7 @@ if __name__ == "__main__":
     if len(sys.argv) >= 5:
         outputfile = sys.argv[4]
 
-    print "image:", (w, h), "data", data, "saving to ", outputfile
+    print("image:", (w, h), "data", data, "saving to ", outputfile)
 
     data_size_available = w*h - 8
 
@@ -49,22 +48,22 @@ if __name__ == "__main__":
     draw = ImageDraw.Draw(im)
 
     data = data[:data_size_available]
-    databits = bin(int(binascii.hexlify(data), 16))
+    databits = bin(int(binascii.hexlify(bytearray(data, 'UTF-8')), 16))
     missing_zeros = 8 - ((len(databits)-2) % 8)
 
     #print missing_zeros
     databits = databits.replace("b", "b"+"0"*missing_zeros)
 
     n = int(databits, 2)
-    print binascii.unhexlify('%x' % n)
+    print(binascii.unhexlify('%x' % n))
 
     checksum = bin(sum(map(ord, databits)) % 255)
     missing_zeros = 10 - len(checksum)
-    print int(checksum, 2), missing_zeros
-    print databits
+    print(int(checksum, 2), missing_zeros)
+    print(databits)
 
     checksumbits = checksum.replace("b", "b"+"0"*missing_zeros)
-#    print checksumbits
+    print(checksumbits)
 
 
 
